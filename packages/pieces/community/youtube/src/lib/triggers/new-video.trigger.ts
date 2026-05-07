@@ -240,7 +240,9 @@ export const youtubeNewVideoTrigger = createTrigger({
       await store.put('channelId', channelId);
     }
     const items = await getRssItems(channelId);
-    await store.put('_seenVideoIds', items.map((item) => getId(item)));
+    if (items.length > 0) {
+      await store.put('_seenVideoIds', items.map((item) => getId(item)));
+    }
   },
   async onDisable({ store }): Promise<void> {
     await store.delete('_seenVideoIds');
@@ -260,7 +262,11 @@ export const youtubeNewVideoTrigger = createTrigger({
     // Advance the seen-IDs set to the current feed so that if the anchor item
     // (e.g. a live stream) is later deleted and pollingHelper would otherwise
     // return all items, the previously-seen IDs are still excluded.
-    await store.put('_seenVideoIds', rawItems.map((item) => getId(item)));
+    // Skip the update on an empty feed response to avoid wiping the set and
+    // causing false positives on the next successful poll.
+    if (rawItems.length > 0) {
+      await store.put('_seenVideoIds', rawItems.map((item) => getId(item)));
+    }
 
     return newItems
       .sort((a, b) => {
